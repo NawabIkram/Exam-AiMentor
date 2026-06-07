@@ -1,0 +1,10 @@
+<resources>
+    <style name="Theme.CSSAIMentor" parent="android:style/Theme.Material.NoActionBar">
+        <item name="android:windowLightStatusBar">false</item>
+        <item name="android:navigationBarColor">#05060A</item>
+        <item name="android:statusBarColor">#05060A</item>
+        <item name="android:windowNoTitle">true</item>
+        <item name="android:fontFamily">sans</item>
+    </style>
+</resources>
+

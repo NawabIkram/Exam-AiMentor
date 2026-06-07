@@ -1,0 +1,5 @@
+<resources>
+    <string name="app_name">CSS AI Mentor</string>
+    <string name="google_web_client_id">replace-with-real-web-client-id</string>
+</resources>
+
