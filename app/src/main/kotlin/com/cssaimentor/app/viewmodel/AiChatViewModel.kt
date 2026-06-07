@@ -14,6 +14,8 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
@@ -29,6 +31,7 @@ class AiChatViewModel @Inject constructor(
     private val aiRepository: AiRepository
 ) : ViewModel() {
     private val transient = MutableStateFlow(AiChatUiState())
+    private var activeGeneration: Job? = null
 
     val uiState: StateFlow<AiChatUiState> = combine(
         aiRepository.observeChat(),
@@ -46,24 +49,42 @@ class AiChatViewModel @Inject constructor(
     fun send() {
         val prompt = uiState.value.input.trim()
         if (prompt.isBlank() || uiState.value.isTyping) return
-        viewModelScope.launch {
+        activeGeneration = viewModelScope.launch {
             transient.update { it.copy(input = "", isTyping = true, error = null) }
-            when (val result = aiRepository.sendMessage(prompt)) {
-                is AppResult.Success -> transient.update { it.copy(isTyping = false) }
-                is AppResult.Error -> transient.update { it.copy(isTyping = false, error = result.message) }
+            try {
+                when (val result = aiRepository.sendMessage(prompt)) {
+                    is AppResult.Success -> transient.update { it.copy(isTyping = false) }
+                    is AppResult.Error -> transient.update { it.copy(isTyping = false, error = result.message) }
+                }
+            } catch (_: CancellationException) {
+                transient.update { it.copy(isTyping = false, error = "Response stopped.") }
+            } finally {
+                activeGeneration = null
             }
         }
     }
 
     fun regenerate() {
         if (uiState.value.isTyping) return
-        viewModelScope.launch {
+        activeGeneration = viewModelScope.launch {
             transient.update { it.copy(isTyping = true, error = null) }
-            when (val result = aiRepository.regenerateLastResponse()) {
-                is AppResult.Success -> transient.update { it.copy(isTyping = false) }
-                is AppResult.Error -> transient.update { it.copy(isTyping = false, error = result.message) }
+            try {
+                when (val result = aiRepository.regenerateLastResponse()) {
+                    is AppResult.Success -> transient.update { it.copy(isTyping = false) }
+                    is AppResult.Error -> transient.update { it.copy(isTyping = false, error = result.message) }
+                }
+            } catch (_: CancellationException) {
+                transient.update { it.copy(isTyping = false, error = "Response stopped.") }
+            } finally {
+                activeGeneration = null
             }
         }
+    }
+
+    fun stopGeneration() {
+        activeGeneration?.cancel()
+        activeGeneration = null
+        transient.update { it.copy(isTyping = false, error = "Response stopped.") }
     }
 
     fun clearChat() {
@@ -79,4 +100,3 @@ class AiChatViewModel @Inject constructor(
         )
     }
 }
-

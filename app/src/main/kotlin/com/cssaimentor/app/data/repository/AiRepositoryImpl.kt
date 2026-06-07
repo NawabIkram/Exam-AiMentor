@@ -17,6 +17,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.withContext
+import kotlinx.coroutines.withTimeout
 import java.util.UUID
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -67,21 +68,23 @@ class AiRepositoryImpl @Inject constructor(
                     error("Gemini API key is missing. Set GEMINI_API_KEY.")
                 }
             } else {
-                geminiApi.generateContent(
-                    model = Constants.GEMINI_MODEL,
-                    apiKey = BuildConfig.GEMINI_API_KEY,
-                    request = GeminiRequest(
-                        systemInstruction = GeminiContent(
-                            parts = listOf(GeminiPart(CSS_MENTOR_SYSTEM_PROMPT))
-                        ),
-                        contents = listOf(
-                            GeminiContent(
-                                role = "user",
-                                parts = listOf(GeminiPart(userPrompt))
+                withTimeout(Constants.AI_RESPONSE_TIMEOUT_MS) {
+                    geminiApi.generateContent(
+                        model = Constants.GEMINI_MODEL,
+                        apiKey = BuildConfig.GEMINI_API_KEY,
+                        request = GeminiRequest(
+                            systemInstruction = GeminiContent(
+                                parts = listOf(GeminiPart(CSS_MENTOR_SYSTEM_PROMPT))
+                            ),
+                            contents = listOf(
+                                GeminiContent(
+                                    role = "user",
+                                    parts = listOf(GeminiPart(userPrompt))
+                                )
                             )
                         )
-                    )
-                ).bestText().ifBlank {
+                    ).bestText()
+                }.ifBlank {
                     error("Gemini returned an empty response.")
                 }
             }
@@ -146,6 +149,7 @@ class AiRepositoryImpl @Inject constructor(
             - Database content may still be configured later, so explain app capabilities honestly if asked.
             
             Be precise, exam-oriented, structured, and honest. Prefer Pakistan-relevant examples.
+            Keep normal answers short: 120-180 words unless the user asks for detail.
             Use markdown headings, bullets, tables when helpful, and practical study actions.
             Never invent current facts. If unsure, say what to verify.
         """

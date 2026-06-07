@@ -13,6 +13,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.Close
 import androidx.compose.material.icons.rounded.ContentCopy
 import androidx.compose.material.icons.rounded.Refresh
 import androidx.compose.material.icons.rounded.Send
@@ -73,7 +74,7 @@ fun AiChatScreen(
                 Text("AI Mentor", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold)
                 Text("CSS-focused reasoning assistant", color = MentorTextMuted)
             }
-            IconButton(onClick = viewModel::regenerate) {
+            IconButton(onClick = viewModel::regenerate, enabled = !state.isTyping) {
                 Icon(Icons.Rounded.Refresh, contentDescription = "Regenerate", tint = MentorCyan)
             }
         }
@@ -114,8 +115,16 @@ fun AiChatScreen(
                 modifier = Modifier.weight(1f),
                 singleLine = false
             )
-            IconButton(onClick = viewModel::send, enabled = !state.isTyping) {
-                Icon(Icons.Rounded.Send, contentDescription = "Send", tint = MentorCyan)
+            IconButton(
+                onClick = {
+                    if (state.isTyping) viewModel.stopGeneration() else viewModel.send()
+                }
+            ) {
+                Icon(
+                    imageVector = if (state.isTyping) Icons.Rounded.Close else Icons.Rounded.Send,
+                    contentDescription = if (state.isTyping) "Stop response" else "Send",
+                    tint = if (state.isTyping) MentorError else MentorCyan
+                )
             }
         }
     }
@@ -149,4 +158,3 @@ private fun MessageBubble(message: ChatMessage) {
     }
     Spacer(Modifier.height(2.dp))
 }
-

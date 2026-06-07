@@ -9,4 +9,5 @@ object Constants {
     const val GEMINI_MODEL = "gemini-2.5-flash"
     const val DEMO_PDF_URL = "https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf"
     const val REMOTE_CONTENT_TIMEOUT_MS = 1_500L
+    const val AI_RESPONSE_TIMEOUT_MS = 20_000L
 }
