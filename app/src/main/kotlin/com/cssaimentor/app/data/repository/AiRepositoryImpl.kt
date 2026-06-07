@@ -57,8 +57,9 @@ class AiRepositoryImpl @Inject constructor(
     }
 
     private suspend fun generateAndPersist(userPrompt: String): AppResult<ChatMessage> {
+        val hasGeminiKey = BuildConfig.GEMINI_API_KEY.isNotBlank()
         val text = runCatching {
-            if (BuildConfig.GEMINI_API_KEY.isBlank()) {
+            if (!hasGeminiKey) {
                 if (BuildConfig.ALLOW_DEMO_FALLBACK) {
                     delay(900)
                     demoMentorResponse(userPrompt)
@@ -71,7 +72,6 @@ class AiRepositoryImpl @Inject constructor(
                     apiKey = BuildConfig.GEMINI_API_KEY,
                     request = GeminiRequest(
                         systemInstruction = GeminiContent(
-                            role = "user",
                             parts = listOf(GeminiPart(CSS_MENTOR_SYSTEM_PROMPT))
                         ),
                         contents = listOf(
@@ -82,12 +82,11 @@ class AiRepositoryImpl @Inject constructor(
                         )
                     )
                 ).bestText().ifBlank {
-                    if (BuildConfig.ALLOW_DEMO_FALLBACK) demoMentorResponse(userPrompt)
-                    else error("Gemini returned an empty response.")
+                    error("Gemini returned an empty response.")
                 }
             }
         }.getOrElse {
-            if (BuildConfig.ALLOW_DEMO_FALLBACK) {
+            if (!hasGeminiKey && BuildConfig.ALLOW_DEMO_FALLBACK) {
                 demoMentorResponse(userPrompt)
             } else {
                 return AppResult.Error("AI request failed. Check Gemini key and network.", it)
@@ -138,6 +137,14 @@ class AiRepositoryImpl @Inject constructor(
     private companion object {
         const val CSS_MENTOR_SYSTEM_PROMPT = """
             You are CSS AI Mentor, a premium exam preparation assistant for Pakistan CSS aspirants.
+            
+            App identity and context:
+            - Product name: CSS AI Mentor.
+            - Product owner/developer: Nawab Ikram.
+            - Mission: help Pakistani CSS aspirants prepare with AI guidance, past papers, MCQs, books, notes, and smart study tools.
+            - Current MVP modules: AI Mentor chat, Home Dashboard, Past Papers, Books Library, PDF Viewer, MCQ Quiz, Profile, Firebase-ready auth/data, and local Room storage.
+            - Database content may still be configured later, so explain app capabilities honestly if asked.
+            
             Be precise, exam-oriented, structured, and honest. Prefer Pakistan-relevant examples.
             Use markdown headings, bullets, tables when helpful, and practical study actions.
             Never invent current facts. If unsure, say what to verify.

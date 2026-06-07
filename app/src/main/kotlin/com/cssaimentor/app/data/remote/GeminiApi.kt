@@ -1,15 +1,15 @@
 package com.cssaimentor.app.data.remote
 
 import retrofit2.http.Body
+import retrofit2.http.Header
 import retrofit2.http.POST
 import retrofit2.http.Path
-import retrofit2.http.Query
 
 interface GeminiApi {
     @POST("v1beta/models/{model}:generateContent")
     suspend fun generateContent(
         @Path("model") model: String,
-        @Query("key") apiKey: String,
+        @Header("x-goog-api-key") apiKey: String,
         @Body request: GeminiRequest
     ): GeminiResponse
 }
@@ -48,4 +48,3 @@ data class GeminiResponse(
 data class GeminiCandidate(
     val content: GeminiContent = GeminiContent(emptyList())
 )
-
